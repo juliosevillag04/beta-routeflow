@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7f8fc">
+  <meta name="description" content="RouteFlow: calcula recorridos por las calles de Managua con algoritmos propios de grafos.">
+  <title>RouteFlow — Llega de forma inteligente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Planificador de ruta">
+      <div class="brand-row">
+        <div class="logo-mark" aria-hidden="true">
+          <svg width="27" height="27" viewBox="0 0 27 27" fill="none">
+            <path d="M5 21V7.5C5 5.8 6.3 4.5 8 4.5H14.5C19 4.5 21 7.1 21 10.3C21 13.4 18.6 15.4 15 15.4H5" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M15 15.5L22 22" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="brand-text"><span class="brand-name">route<span>flow</span></span><span class="brand-caption">EL CAMINO MÁS INTELIGENTE</span></div>
+        <span class="version">V1.0</span>
+      </div>
+
+      <div class="sidebar-scroll">
+        <div class="intro">
+          <div class="eyebrow"><span class="eyebrow-line"></span> TU CIUDAD, A TU RITMO</div>
+          <h1>Tu próximo destino,<br><span>sin rodeos.</span></h1>
+          <p>Elige los lugares que visitarás. RouteFlow busca el recorrido con menor tiempo estimado.</p>
+        </div>
+
+        <div id="estado-red" class="network-status loading" role="status" aria-live="polite">
+          <div class="status-icon"><span class="status-spinner"></span></div>
+          <div class="status-copy"><strong id="titulo-estado">Preparando Managua</strong><span id="texto-estado">Conectando con la red de calles…</span></div>
+          <button id="btn-reintentar" class="tiny-retry" type="button" title="Reintentar la descarga" hidden>↻</button>
+        </div>
+        <div id="demo-banner" class="demo-banner" hidden><strong>Modo demostración</strong><span>Calles ficticias para probar el algoritmo. No usar para conducir.</span></div>
+        <div id="red-actions" class="network-actions" hidden>
+          <button id="btn-demo" class="text-button" type="button">Probar con red ficticia</button>
+          <button id="btn-real" class="text-button" type="button" hidden>Volver a calles reales</button>
+        </div>
+
+        <div class="section-heading"><span class="step-number">01</span><span>Define tu recorrido</span></div>
+        <div class="point-fields">
+          <button id="btn-origen" type="button" class="point-field active" aria-label="Seleccionar origen en el mapa">
+            <span class="pin-bullet origin-bullet"></span>
+            <span class="field-copy"><small>ORIGEN</small><strong id="texto-origen">¿Desde dónde sales?</strong></span>
+            <span class="field-tail" aria-hidden="true">↗</span>
+          </button>
+          <div class="field-connector" aria-hidden="true"><i></i><i></i><i></i></div>
+          <button id="btn-destino" type="button" class="point-field" aria-label="Seleccionar destino en el mapa">
+            <span class="pin-bullet destination-bullet"></span>
+            <span class="field-copy"><small>DESTINO</small><strong id="texto-destino">¿A dónde quieres llegar?</strong></span>
+            <span class="field-tail" aria-hidden="true">↗</span>
+          </button>
+        </div>
+
+        <div class="search-heading"><span>ENCUENTRA UN LUGAR</span><span id="objetivo-busqueda">Para tu origen</span></div>
+        <div class="search-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input id="busqueda" placeholder="Busca una calle o un lugar" maxlength="100" autocomplete="off" aria-label="Buscar lugar en Managua">
+          <button type="button" id="btn-buscar" aria-label="Buscar lugares">Buscar</button>
+        </div>
+        <div id="resultados-busqueda" class="search-results" hidden></div>
+        <p class="micro-help">O selecciona directamente un punto en el mapa →</p>
+
+        <div class="section-heading section-gap"><span class="step-number">02</span><span>Tus paradas</span><span id="contador-paradas" class="section-counter">0/{{ max_paradas }}</span></div>
+        <div id="lista-paradas" class="stops-list"><p class="empty-stops">Sin paradas intermedias por ahora.</p></div>
+        <button id="btn-agregar" class="add-stop" type="button"><span class="add-icon">+</span> Añadir una parada <span class="add-end">↗</span></button>
+
+        <div class="section-heading section-gap"><span class="step-number">03</span><span>Personaliza tu viaje</span></div>
+        <div class="settings-panel">
+          <div class="setting-title"><span>Hora de salida</span><span class="setting-detail">Hora de Managua</span></div>
+          <label class="checkline"><input type="checkbox" id="salir-ahora" checked><span class="checkbox-box"></span> Salir ahora</label>
+          <div id="hora-contenedor" class="time-container" hidden><input id="hora-personalizada" type="datetime-local" aria-label="Hora de salida en Managua"></div>
+          <div class="settings-divider"></div>
+          <div class="setting-title"><span>Orden de las paradas</span><span class="setting-detail">Opcional</span></div>
+          <label class="radio-line"><input type="radio" name="orden" id="orden-optimo" checked><span class="radio-display"></span><span><strong>Optimizar orden</strong><small>Menor tiempo entre todas las paradas</small></span></label>
+          <label class="radio-line"><input type="radio" name="orden" id="orden-fijo"><span class="radio-display"></span><span><strong>Seguir mi orden</strong><small>Visitar como las agregaste</small></span></label>
+        </div>
+
+        <button id="btn-calcular" class="main-button" type="button" disabled>
+          <span class="btn-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M6 16V9a3 3 0 0 1 3-3h7M18 8v8a3 3 0 0 1-3 3H8"/></svg></span>
+          <span>Encontrar mi mejor ruta</span><span class="button-arrow">→</span>
+        </button>
+
+        <section id="resultado-ruta" class="route-result" hidden aria-live="polite">
+          <div class="result-top"><span class="result-kicker">TU RUTA ESTÁ LISTA</span><span class="result-check">✓</span></div>
+          <div class="result-main"><span id="tiempo-principal">—</span><span class="result-unit">min</span></div>
+          <div class="result-metrics"><span><strong id="distancia-principal">—</strong> km estimados</span><span><strong id="semaforos-principal">—</strong> señales detectadas</span></div>
+          <p id="perfil-trafico" class="traffic-profile"></p>
+          <div class="result-divider"></div>
+          <div class="result-caption">ORDEN RECOMENDADO DE VISITAS</div>
+          <ol id="orden-final" class="final-stops"></ol>
+          <div id="comparacion" class="comparison"></div>
+          <label class="show-short"><input id="mostrar-corta" type="checkbox"> Comparar visualmente la ruta más corta</label>
+          <div id="advertencia-ruta" class="model-warning"></div>
+        </section>
+        <p class="sidebar-footnote">Prototipo académico · Datos de © OpenStreetMap · Tiempos modelados, no tráfico en vivo.</p>
+      </div>
+    </aside>
+
+    <main class="map-area" aria-label="Mapa de Managua">
+      <div id="map" role="application" aria-label="Mapa interactivo de Managua. Haz clic para establecer los puntos."></div>
+      <div class="map-top">
+        <div class="location-pill"><span class="location-dot"></span><span>Managua, Nicaragua</span><span class="location-sep"></span><span class="location-map-label">Mapa de calles</span></div>
+        <div class="map-top-right"><span class="tiny-live"></span><span id="map-red-label">Cargando red vial</span></div>
+      </div>
+      <div id="map-instruction" class="map-tip"><span class="tip-icon">✳</span><span id="tip-texto">Haz clic en el mapa para colocar tu origen</span></div>
+      <div id="loading-overlay" class="map-loading" hidden><div class="loading-glass"><span class="loading-ring"></span><strong>Calculando la ruta más rápida</strong><small>Analizando nuestra red de nodos y calles…</small></div></div>
+      <div class="map-legend"><div><span class="legend-line fast"></span> Menor tiempo estimado</div><div id="leyenda-corta" hidden><span class="legend-line short"></span> Menor distancia</div></div>
+      <div class="map-bottom-label">MODELO HORARIO ACADÉMICO <span>•</span> SIN TRÁFICO EN VIVO</div>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="alert" hidden></div>
+  <script>
+    window.ROUTEFLOW_CONFIG = {
+      centro: {{ centro | tojson }},
+      bbox: {{ bbox | tojson }},
+      maxParadas: {{ max_paradas | tojson }}
+    };
+  </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='js/mapa.js') }}" defer></script>
+</body>
+</html>

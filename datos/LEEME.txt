@@ -1,0 +1,4 @@
+Los archivos descargados desde OpenStreetMap se guardarán aquí automáticamente.
+La primera descarga puede requerir conexión, disponibilidad de Overpass y tiempo.
+Si un archivo .graphml ya existe, se reutiliza al iniciar la aplicación.
+El contenido de la red geográfica de demostración es FICTICIO y se crea solo en memoria.

@@ -1,0 +1,51 @@
+ROUTEFLOW V1.2 - CORRECCION DE MANIOBRAS Y AJUSTE A CALLES
+=======================================================
+
+ESTE ZIP ES UN PARCHE, NO UNA INSTALACION NUEVA.
+
+1. Detener RouteFlow en CMD con Ctrl+C.
+2. Extraer LOS ARCHIVOS Y CARPETAS de este ZIP directamente dentro de:
+   C:\uam_c\sistemas\semestre_2\prog_estructurada\proyecto\RouteFlow
+3. Aceptar reemplazar los archivos que ya existen. El archivo ajuste.py
+   es nuevo y debe quedar AL LADO de app.py, grafo.py y dijkstra.py.
+4. Mantener intacta la carpeta .venv y datos/managua_urbana.graphml.
+5. No se incluye style.css ni index.html: se conserva la barra de scroll
+   y otras personalizaciones que ya hayas hecho en CSS/HTML.
+6. Abrir CMD en RouteFlow y ejecutar:
+
+   .venv\Scripts\activate.bat
+   python -m pytest -q
+   python app.py
+
+7. Actualizar el navegador con Ctrl+F5 y volver a calcular la ruta.
+
+CAMBIOS
+-------
+- Dijkstra evalua el estado de la ARISTA de llegada para modelar giros.
+- Se estiman demoras adicionales para giros pronunciados y retornos.
+- El origen, destino y las paradas se vinculan a tramos dirigidos de calle
+  mediante nodos virtuales; se evita forzar pasos por cruces lejanos.
+- Se conservan las velocidades y franjas horarias de la version original.
+- Se conservan los archivos de red real ya descargados.
+
+LIMITACIONES IMPORTANTES
+------------------------
+- La red OSMnx no trae automaticamente todas las relaciones de prohibicion
+  de giros OSM. Por tanto no se garantiza que cada maniobra sea legal.
+- Los recargos de maniobra y de congestion son SUPUESTOS ACADEMICOS,
+  NO datos de transito en tiempo real.
+- Cuando los mapas OSM codifican carriles o cruces con errores, la ruta puede
+  seguir mostrando rodeos. No uses RouteFlow como navegador de conduccion.
+
+ARCHIVOS DEL PARCHE
+-------------------
+  ajuste.py                NUEVO
+  app.py                   REEMPLAZAR
+  grafo.py                 REEMPLAZAR
+  dijkstra.py              REEMPLAZAR
+  trafico.py               REEMPLAZAR
+  static\js\mapa.js         REEMPLAZAR (aviso explicativo de las rutas)
+  tests\test_ajuste_giros.py NUEVO
+  README.md                REEMPLAZAR (documentacion actualizada)
+
+No necesitas instalar nuevas librerias: Shapely ya viene con OSMnx.
